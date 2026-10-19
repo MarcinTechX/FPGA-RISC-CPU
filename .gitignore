@@ -1,0 +1,8 @@
+*
+!*/
+!.gitignore
+!README.md
+!LICENSE
+!*.sv
+!/**/*.sv
+!program.txt

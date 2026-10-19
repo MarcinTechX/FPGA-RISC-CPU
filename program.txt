@@ -1,0 +1,31 @@
+
+43FB    //  0: MOVI R1, -5       -> R1 = -5 (0xFFFB)
+4403    //  1: MOVI R2, 3        -> R2 = 3  (0x0003)
+0650    //  2: ADD R3, R1, R2    -> R3 = -2 (0xFFFE)
+1250    //  3: SUB R1, R1, R2    -> R1 = -8 (0xFFF8)
+0650    //  4: ADD R3, R1, R2    -> R3 = -5 (0xFFFB)
+27C8    //  5: AND R3, R7, R1    -> R3 = R7 AND R1
+38D0    //  6: OR R4, R3, R2     -> R4 = R3 OR R2
+58C0    //  7: NOT R4, R3        -> R4 = NOT R3
+6B00    //  8: SHL R5, R4        -> R5 = R4 << 1
+7D40    //  9: SHR R6, R5        -> R6 = R5 >> 1
+88C0    // 10: INC R4, R3        -> R4 = R3 + 1
+9D40    // 11: DEC R6, R5        -> R6 = R5 - 1
+4201    // 12: MOVI R1, 1        -> R1 = 1
+45FF    // 13: MOVI R2, -1       -> R2 = -1 (0xFFFF)
+0650    // 14: ADD R3, R1, R2    -> R3 = 0
+1250    // 15: SUB R1, R1, R2    -> R1 = 2
+58C0    // 16: NOT R4, R3        -> R4 = NOT R3
+6B00    // 17: SHL R5, R4        -> R5 = R4 << 1
+7D40    // 18: SHR R6, R5        -> R6 = R5 >> 1
+9D40    // 19: DEC R6, R5        -> R6 = R5 - 1
+4200    // 20: MOVI R1, 0        -> R1 = 0
+C218    // 21: JZ R1, 24          -> R1 == 0, jump to address 24
+4463    // 22: MOVI R2, 99        -> SKIPPED
+B019    // 23: JMP 25             -> SKIPPED
+4402    // 24: MOVI R2, 2        -> R2 = 2
+4201    // 25: MOVI R1, 1        -> R1 = 1
+D21C    // 26: JNZ R1, 28         -> R1 != 0, jump to address 28
+4463    // 27: MOVI R2, 99        -> SKIPPED
+B01D    // 28: JMP 29             -> jump to address 29
+F000    // 29: HALT               -> stop CPU
