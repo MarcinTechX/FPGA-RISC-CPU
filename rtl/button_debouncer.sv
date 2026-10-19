@@ -7,7 +7,14 @@ module button_debouncer #(
     output logic button_out
 );
 
-    logic sync_0, sync_1;
+    logic sync_0          = 1'b1;
+    logic sync_1          = 1'b1;
+    logic debounced_state = 1'b1;
+
+    localparam integer COUNTER_WIDTH =
+        (DEBOUNCE_COUNT > 1) ? $clog2(DEBOUNCE_COUNT + 1) : 1;
+
+    logic [COUNTER_WIDTH-1:0] counter = '0;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -19,31 +26,24 @@ module button_debouncer #(
         end
     end
 
-    localparam integer COUNTER_WIDTH =
-        (DEBOUNCE_COUNT > 1) ? $clog2(DEBOUNCE_COUNT + 1) : 1;
-
-    logic [COUNTER_WIDTH-1:0] counter;
-    logic debounced_state;
-
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             counter         <= '0;
             debounced_state <= 1'b1;
-            button_out      <= 1'b1;
         end else begin
             if (sync_1 != debounced_state) begin
                 if (counter >= DEBOUNCE_COUNT - 1) begin
                     debounced_state <= sync_1;
-                    button_out      <= sync_1;
                     counter         <= '0;
                 end else begin
                     counter <= counter + 1'b1;
                 end
             end else begin
-                counter    <= '0;
-                button_out <= debounced_state;
+                counter <= '0;
             end
         end
     end
+
+    assign button_out = debounced_state;
 
 endmodule

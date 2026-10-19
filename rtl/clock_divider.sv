@@ -6,20 +6,23 @@ module clock_divider #(
     output logic tick
 );
 
-    logic [31:0] counter;
+    localparam integer COUNTER_WIDTH =
+        (CLK_HZ > 1) ? $clog2(CLK_HZ) : 1;
+
+    logic [COUNTER_WIDTH-1:0] counter = '0;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            counter <= 32'd0;
+            counter <= '0;
             tick    <= 1'b0;
-        end
-        else if (counter == CLK_HZ - 1) begin
-            counter <= 32'd0;
-            tick    <= 1'b1;
-        end
-        else begin
-            counter <= counter + 32'd1;
-            tick    <= 1'b0;
+        end else begin
+            if (counter >= CLK_HZ - 1) begin
+                counter <= '0;
+                tick    <= 1'b1;   
+            end else begin
+                counter <= counter + 1'b1;
+                tick    <= 1'b0;
+            end
         end
     end
 
