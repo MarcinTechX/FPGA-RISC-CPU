@@ -1,32 +1,96 @@
-
-module top (
-    input  logic        CLOCK_10,
-    input  logic        KEY,
+module top #(
+    parameter integer CLK_HZ = 10_000_000,
+    parameter integer DISPLAY_REFRESH_COUNT = 10_000,
+    parameter integer DEBOUNCE_COUNT = 200_000
+) (
+    input  logic        clk,
+    input  logic [2:0]  KEY,
     output logic [7:0]  SEGMENTS,
     output logic [3:0]  DS
 );
 
-    logic rst_n;
+    logic raw_rst_btn;
+    logic raw_resume_btn;
+    logic raw_pause_btn;
+
+    logic debounced_rst_n;
+    logic debounced_resume_btn;
+    logic debounced_pause_btn;
+
     logic tick;
+    logic paused;
 
     logic [15:0] cpu_result;
     logic [15:0] pc;
     logic halted;
 
-    assign rst_n = KEY;
+    assign raw_rst_btn    = KEY[0];
+    assign raw_resume_btn = KEY[1];
+    assign raw_pause_btn  = KEY[2];
+
+    button_debouncer #(
+        .DEBOUNCE_COUNT(DEBOUNCE_COUNT)
+    ) rst_debouncer_inst (
+        .clk        (clk),
+        .rst_n      (1'b1),
+        .button_in  (raw_rst_btn),
+        .button_out (debounced_rst_n)
+    );
+
+    button_debouncer #(
+        .DEBOUNCE_COUNT(DEBOUNCE_COUNT)
+    ) resume_debouncer_inst (
+        .clk        (clk),
+        .rst_n      (debounced_rst_n),
+        .button_in  (raw_resume_btn),
+        .button_out (debounced_resume_btn)
+    );
+
+    button_debouncer #(
+        .DEBOUNCE_COUNT(DEBOUNCE_COUNT)
+    ) pause_debouncer_inst (
+        .clk        (clk),
+        .rst_n      (debounced_rst_n),
+        .button_in  (raw_pause_btn),
+        .button_out (debounced_pause_btn)
+    );
+
+    logic resume_btn_prev;
+    logic pause_btn_prev;
+
+    always_ff @(posedge clk or negedge debounced_rst_n) begin
+        if (!debounced_rst_n) begin
+            resume_btn_prev <= 1'b1;
+            pause_btn_prev  <= 1'b1;
+            paused          <= 1'b0;
+        end else begin
+            resume_btn_prev <= debounced_resume_btn;
+            pause_btn_prev  <= debounced_pause_btn;
+
+            if (resume_btn_prev && !debounced_resume_btn) begin
+                paused <= 1'b0;
+            end else if (pause_btn_prev && !debounced_pause_btn) begin
+                paused <= 1'b1;
+            end
+        end
+    end
 
     clock_divider #(
-        .CLK_HZ(10_000_000)
+        .CLK_HZ(CLK_HZ)
     ) divider (
-        .clk   (CLOCK_10),
-        .rst_n (rst_n),
+        .clk   (clk),
+        .rst_n (debounced_rst_n),
         .tick  (tick)
     );
 
+    logic cpu_step_enable;
+
+    assign cpu_step_enable = tick && !paused;
+
     cpu processor (
-        .clk         (CLOCK_10),
-        .rst_n       (rst_n),
-        .step_enable (tick),
+        .clk         (clk),
+        .rst_n       (debounced_rst_n),
+        .step_enable (cpu_step_enable),
         .result      (cpu_result),
         .halted      (halted),
         .pc_out      (pc)
@@ -78,16 +142,16 @@ module top (
     assign show_hex2 = show_hex3 || (cpu_result[11:8] != 4'h0);
     assign show_hex1 = show_hex2 || (cpu_result[7:4] != 4'h0);
 
-    logic [13:0] clk_counter;
-    logic [1:0]  active_digit;
+    logic [31:0] clk_counter;
+    logic [1:0] active_digit;
 
-    always_ff @(posedge CLOCK_10 or negedge rst_n) begin
-        if (!rst_n) begin
-            clk_counter  <= 14'd0;
+    always_ff @(posedge clk or negedge debounced_rst_n) begin
+        if (!debounced_rst_n) begin
+            clk_counter  <= 32'd0;
             active_digit <= 2'd0;
         end else begin
-            if (clk_counter >= 14'd10000) begin
-                clk_counter  <= 14'd0;
+            if (clk_counter >= DISPLAY_REFRESH_COUNT - 1) begin
+                clk_counter  <= 32'd0;
                 active_digit <= active_digit + 1'b1;
             end else begin
                 clk_counter <= clk_counter + 1'b1;
